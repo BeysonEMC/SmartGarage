@@ -1,0 +1,839 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Rol {
+  ADMIN
+  CAJERO
+  BODEGUERO
+  VENDEDOR
+}
+
+enum EstadoTenant {
+  ACTIVO
+  SUSPENDIDO
+}
+
+enum UnidadMedida {
+  UNIDAD
+  PIE
+  METRO
+  METRO_CUADRADO
+  METRO_CUBICO
+  LIBRA
+  KG
+  GALON
+  LITRO
+  CAJA
+  PAQUETE
+  OTRO
+}
+
+enum TipoCliente {
+  CONSUMIDOR_FINAL
+  MAYORISTA
+  CONTRATISTA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  CREDITO
+  TRANSFERENCIA
+}
+
+enum EstadoVenta {
+  COMPLETADA
+  ANULADA
+}
+
+enum EstadoCotizacion {
+  BORRADOR
+  ENVIADA
+  APROBADA
+  RECHAZADA
+  VENCIDA
+  CONVERTIDA
+}
+
+enum TipoSecuencia {
+  VENTA
+  COTIZACION
+}
+
+enum ModoNavegacion {
+  SIDEBAR
+  TOPNAV
+}
+
+enum EstadoLevantamiento {
+  BORRADOR
+  EN_PROGRESO
+  REVISION
+  FINALIZADO
+}
+
+enum EstadoCompra {
+  PENDIENTE
+  PAGADA
+  PARCIAL
+}
+
+enum TipoPago {
+  CONTADO
+  CREDITO
+}
+
+// ============================================================
+// SUPER ADMIN — Tabla separada, sin tenant_id
+// ============================================================
+
+model SuperAdmin {
+  id           String   @id @default(uuid())
+  nombre       String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("super_admins")
+}
+
+// ============================================================
+// TENANT — Cada ferretería cliente
+// ============================================================
+
+model Tenant {
+  id               String       @id @default(uuid())
+  nombreComercial  String       @map("nombre_comercial")
+  direccion        String?
+  telefono         String?
+  email            String?
+  logoUrl          String?      @map("logo_url")
+  colorPrimario    String       @default("#EA580C") @map("color_primario")
+  modoNavegacion   ModoNavegacion @default(SIDEBAR) @map("modo_navegacion")
+  plan             String       @default("Plan Pro")
+  estado           EstadoTenant @default(ACTIVO)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  configuracion Json @default("{}")
+
+  // Relaciones
+  usuarios         Usuario[]
+  categorias       Categoria[]
+  productos        Producto[]
+  clientes         Cliente[]
+  secuenciaCliente SecuenciaCliente?
+  ventas           Venta[]
+  cotizaciones     Cotizacion[]
+  secuencias       SecuenciaTenant[]
+  modulos          TenantModule[]
+  levantamientos   Levantamiento[]
+
+  @@map("tenants")
+}
+
+// ============================================================
+// TENANT MODULE — Módulos habilitados por tenant (Servicios)
+// ============================================================
+
+model TenantModule {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  moduleKey String   @map("module_key")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, moduleKey])
+  @@index([tenantId])
+  @@map("tenant_modules")
+}
+
+// ============================================================
+// USUARIO — Pertenece a un tenant
+// ============================================================
+
+model Usuario {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  nombre       String
+  email        String
+  passwordHash String   @map("password_hash")
+  rol          Rol      @default(ADMIN)
+  permisos     String[] @default([])
+  permisosConfigurados Boolean @default(false) @map("permisos_configurados")
+  descuentoMaximo Decimal @default(0) @map("descuento_maximo") @db.Decimal(5,2)
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ventas       Venta[]
+  cotizaciones Cotizacion[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("usuarios")
+}
+
+// ============================================================
+// CATEGORÍA
+// ============================================================
+
+model Categoria {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  nombre      String
+  descripcion String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productos   Producto[]
+
+  @@unique([tenantId, nombre])
+  @@index([tenantId])
+  @@map("categorias")
+}
+
+// ============================================================
+// PRODUCTO
+// ============================================================
+
+model Producto {
+  stockReservado Decimal @default(0) @map("stock_reservado") @db.Decimal(12,2)
+  id            String      @id @default(uuid())
+  tenantId      String      @map("tenant_id")
+  codigo        String
+  codigoBarras  String?     @map("codigo_barras")
+  codigoFabricante String? @map("codigo_fabricante")
+  margen Decimal? @db.Decimal(5,2)
+  ultimaCompraAt DateTime? @map("ultima_compra_at")
+  nombre        String
+  descripcion   String?
+  categoriaId   String?     @map("categoria_id")
+  precioVenta   Decimal     @map("precio_venta") @db.Decimal(12, 2)
+  precioCosto   Decimal     @map("precio_costo") @db.Decimal(12, 2)
+  costoVigente  Decimal?    @map("costo_vigente") @db.Decimal(12, 2)
+  stockActual   Decimal     @default(0) @map("stock_actual") @db.Decimal(12, 2)
+  stockMinimo   Decimal     @default(0) @map("stock_minimo") @db.Decimal(12, 2)
+  unidadMedida  UnidadMedida @default(UNIDAD) @map("unidad_medida")
+  usaMedida     Boolean     @default(false) @map("usa_medida")
+  activo        Boolean     @default(true)
+  imagenUrl     String?     @map("imagen_url")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoria     Categoria?  @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  detallesVenta DetalleVenta[]
+  detallesCotizacion DetalleCotizacion[]
+  detallesCompra DetalleCompra[]
+  costosCompra CostoCompra[]
+  movimientosInventario MovimientoInventario[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId])
+  @@index([tenantId, activo])
+  @@index([tenantId, nombre])
+  @@index([tenantId, codigoBarras])
+  @@map("productos")
+}
+
+// ============================================================
+// CLIENTE
+// ============================================================
+
+model Cliente {
+  id          String      @id @default(uuid())
+  tenantId    String      @map("tenant_id")
+  codigo      String      @default("")
+  numeroCliente Int       @default(0) @map("numero_cliente")
+  nombre      String
+  rtn         String?
+  telefono    String?
+  email       String?
+  direccion   String?
+  tipo        TipoCliente @default(CONSUMIDOR_FINAL)
+  creditoHabilitado Boolean @default(false) @map("credito_habilitado")
+  limiteCredito Decimal?  @map("limite_credito") @db.Decimal(12, 2)
+  saldoPendiente Decimal  @default(0) @map("saldo_pendiente") @db.Decimal(12, 2)
+  activo      Boolean     @default(true)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ventas      Venta[]
+  cotizaciones Cotizacion[]
+  abonos      AbonoCliente[]
+  cuentas     CuentaOperativa[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId])
+  @@index([tenantId, activo])
+  @@index([tenantId, nombre])
+  @@unique([tenantId, numeroCliente])
+  @@map("clientes")
+}
+
+model SecuenciaCliente {
+  tenantId     String @id @map("tenant_id")
+  ultimoNumero Int    @map("ultimo_numero")
+  tenant       Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("secuencias_cliente")
+}
+
+// ============================================================
+// SECUENCIA POR TENANT — Genera números secuenciales con bloqueo
+// ============================================================
+
+model SecuenciaTenant {
+  id           String        @id @default(uuid())
+  tenantId     String        @map("tenant_id")
+  tipo         TipoSecuencia
+  ultimoNumero Int           @default(0) @map("ultimo_numero")
+
+  // Relaciones
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tipo])
+  @@map("secuencias_tenant")
+}
+
+// ============================================================
+// VENTA
+// ============================================================
+
+model Venta {
+ devoluciones Devolucion[]
+  reservaPendiente Boolean @default(false) @map("reserva_pendiente")
+  id          String      @id @default(uuid())
+  tenantId    String      @map("tenant_id")
+  numeroVenta Int         @map("numero_venta")
+  clienteId   String?     @map("cliente_id")
+  usuarioId   String      @map("usuario_id")
+  subtotal    Decimal     @db.Decimal(12, 2)
+  isv         Decimal     @db.Decimal(12, 2)
+  descuento   Decimal     @default(0) @db.Decimal(12, 2)
+  total       Decimal     @db.Decimal(12, 2)
+  metodoPago  MetodoPago  @default(EFECTIVO) @map("metodo_pago")
+  tipoPago    TipoPago    @default(CONTADO) @map("tipo_pago")
+  saldoCredito Decimal?   @map("saldo_credito") @db.Decimal(12, 2)
+  cajaId String? @map("caja_id")
+  entregadoAt DateTime? @map("entregado_at")
+  entregadoPor String? @map("entregado_por")
+  clienteNombre String? @map("cliente_nombre")
+  clienteRtn String? @map("cliente_rtn")
+  solicitudHash String? @map("solicitud_hash")
+  estado      EstadoVenta @default(COMPLETADA)
+  notas       String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  // Relaciones
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cliente     Cliente?       @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  usuario     Usuario        @relation(fields: [usuarioId], references: [id])
+  detalles    DetalleVenta[]
+  abonos      AbonoCliente[]
+  cotizacion  Cotizacion?    // Si fue generada desde una cotización
+
+  @@unique([tenantId, numeroVenta])
+  @@index([tenantId])
+  @@index([tenantId, estado])
+  @@index([tenantId, createdAt])
+  @@map("ventas")
+}
+
+model AbonoCliente {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  clienteId String   @map("cliente_id")
+  ventaId   String?  @map("venta_id")
+  monto     Decimal  @db.Decimal(12, 2)
+  fecha     DateTime
+  metodo    String?
+  notas     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  venta   Venta?  @relation(fields: [ventaId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([clienteId])
+  @@map("abonos_cliente")
+}
+
+// ============================================================
+// DETALLE DE VENTA
+// ============================================================
+
+model DetalleVenta {
+ devoluciones DetalleDevolucion[]
+  id             String  @id @default(uuid())
+  ventaId        String  @map("venta_id")
+  productoId     String  @map("producto_id")
+  cantidad       Decimal @db.Decimal(12, 2)
+  precioUnitario Decimal @map("precio_unitario") @db.Decimal(12, 2)
+  subtotal       Decimal @db.Decimal(12, 2)
+  costoUnitario Decimal @default(0) @map("costo_unitario") @db.Decimal(12,2)
+  sinInventario Boolean @default(false) @map("sin_inventario")
+  proveedorId String? @map("proveedor_id")
+  ordenCompraId String? @map("orden_compra_id")
+
+  // Relaciones
+  venta          Venta    @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  producto       Producto @relation(fields: [productoId], references: [id])
+
+  @@index([ventaId])
+  @@map("detalles_venta")
+}
+
+// ============================================================
+// COTIZACIÓN
+// ============================================================
+
+model Cotizacion {
+  id                    String           @id @default(uuid())
+  tenantId              String           @map("tenant_id")
+  numeroCotizacion      Int              @map("numero_cotizacion")
+  clienteId             String?          @map("cliente_id")
+  clienteNombre         String           @default("") @map("cliente_nombre")
+  clienteRtn            String?          @map("cliente_rtn")
+  clienteTelefono       String?          @map("cliente_telefono")
+  clienteEmail          String?          @map("cliente_email")
+  clienteDireccion      String?          @map("cliente_direccion")
+  usuarioId             String           @map("usuario_id")
+  subtotal              Decimal          @db.Decimal(12, 2)
+  porcentajeIsv         Decimal          @default(15.00) @map("porcentaje_isv") @db.Decimal(5, 2)
+  isv                   Decimal          @db.Decimal(12, 2)
+  descuento             Decimal          @default(0) @db.Decimal(12, 2)
+  descuentoGeneral      Decimal          @default(0) @map("descuento_general") @db.Decimal(12, 2)
+  tipoDescuentoGeneral String           @default("MONTO") @map("tipo_descuento_general")
+  total                 Decimal          @db.Decimal(12, 2)
+  estado                EstadoCotizacion @default(BORRADOR)
+  fechaValidez          DateTime         @map("fecha_validez") @db.Date
+  diasValidez           Int              @default(15) @map("dias_validez")
+  condicionesPago       String           @default("CONTADO") @map("condiciones_pago")
+  notas                 String?
+  ventaId               String?          @unique @map("venta_id")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cliente               Cliente?            @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  usuario               Usuario             @relation(fields: [usuarioId], references: [id])
+  venta                 Venta?              @relation(fields: [ventaId], references: [id], onDelete: SetNull)
+  detalles              DetalleCotizacion[]
+
+  @@unique([tenantId, numeroCotizacion])
+  @@index([tenantId])
+  @@index([tenantId, estado])
+  @@index([tenantId, fechaValidez])
+  @@map("cotizaciones")
+}
+
+// ============================================================
+// DETALLE DE COTIZACIÓN
+// ============================================================
+
+model DetalleCotizacion {
+  id                  String     @id @default(uuid())
+  cotizacionId        String     @map("cotizacion_id")
+  productoId          String     @map("producto_id")
+  codigoProducto      String     @default("") @map("codigo_producto")
+  descripcionProducto String     @default("") @map("descripcion_producto")
+  unidadMedida        String     @default("UNIDAD") @map("unidad_medida")
+  usaMedida           Boolean    @default(false) @map("usa_medida")
+  cantidad            Decimal    @db.Decimal(12, 2)
+  medida              Decimal    @default(1.00) @map("medida") @db.Decimal(12, 2)
+  totalMedida         Decimal    @default(1.00) @map("total_medida") @db.Decimal(12, 2)
+  precioLista         Decimal    @default(0) @map("precio_lista") @db.Decimal(12, 2)
+  precioUnitario      Decimal    @map("precio_unitario") @db.Decimal(12, 2)
+  descuento           Decimal    @default(0) @map("descuento") @db.Decimal(12, 2)
+  tipoDescuento       String     @default("MONTO") @map("tipo_descuento")
+  exento              Boolean    @default(false) @map("exento")
+  subtotal            Decimal    @db.Decimal(12, 2)
+  isv                 Decimal    @default(0) @map("isv") @db.Decimal(12, 2)
+  totalLinea          Decimal    @default(0) @map("total_linea") @db.Decimal(12, 2)
+
+  // Relaciones
+  cotizacion          Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  producto            Producto   @relation(fields: [productoId], references: [id])
+
+  @@index([cotizacionId])
+  @@map("detalles_cotizacion")
+}
+
+// ============================================================
+// LEVANTAMIENTO DE INVENTARIO
+// ============================================================
+
+model Levantamiento {
+  id          String              @id @default(uuid())
+  tenantId    String              @map("tenant_id")
+  nombre      String
+  descripcion String?
+  estado      EstadoLevantamiento @default(BORRADOR)
+  createdBy   String?             @map("created_by")
+  aplicadoAt DateTime? @map("aplicado_at")
+  aplicadoPor String? @map("aplicado_por")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  // Relaciones
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items       LevantamientoItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, estado])
+  @@index([tenantId, createdAt])
+  @@map("levantamientos")
+}
+
+// ============================================================
+// ITEM DE LEVANTAMIENTO DE INVENTARIO
+// ============================================================
+
+model LevantamientoItem {
+  id              String        @id @default(uuid())
+  levantamientoId String        @map("levantamiento_id")
+  descripcion     String
+  cantidad        Decimal       @db.Decimal(12, 2)
+  unidad          String        @default("unidad")
+  codigo          String?
+  codigoBarras String? @map("codigo_barras")
+  ubicacion String?
+  precioCosto Decimal? @map("precio_costo") @db.Decimal(12,2)
+  precioVenta Decimal? @map("precio_venta") @db.Decimal(12,2)
+  margen Decimal? @db.Decimal(5,2)
+  productoId String? @map("producto_id")
+  version Int @default(1)
+  createdBy String? @map("created_by")
+  updatedBy String? @map("updated_by")
+  marca           String?
+  categoria       String?
+  notas           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relaciones
+  levantamiento   Levantamiento @relation(fields: [levantamientoId], references: [id], onDelete: Cascade)
+
+  @@index([levantamientoId])
+  @@map("levantamiento_items")
+}
+
+
+// Operación real. Los modelos reutilizan tablas históricas cuando ya existen.
+enum EstadoCaja {
+ ABIERTA
+ CERRADA
+}
+enum TipoMovimientoCaja {
+ DEVOLUCION
+ INGRESO_MANUAL
+ EGRESO_MANUAL
+ VENTA_POS
+ ABONO_APARTADO
+ ABONO_CXC
+ PAGO_CXP
+}
+enum EstadoOrdenCompra {
+ BORRADOR
+ SOLICITADA
+ APROBADA
+ RECIBIDA
+ CANCELADA
+}
+model Proveedor {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ nombre String
+ rtn String?
+ contacto String?
+ telefono String?
+ email String?
+ direccion String?
+ activo Boolean @default(true)
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@index([tenantId])
+ @@index([tenantId,nombre])
+ comprasRegistradas CompraProveedor[]
+ costos CostoCompra[]
+ cuentas CuentaOperativa[]
+ @@map("proveedores")
+}
+model CompraProveedor {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ proveedorId String @map("proveedor_id")
+ numeroFactura String? @map("numero_factura")
+ monto Decimal @db.Decimal(12,2)
+ fecha DateTime
+ vencimiento DateTime?
+ estado EstadoCompra @default(PENDIENTE)
+ notas String?
+ createdAt DateTime @default(now()) @map("created_at")
+ proveedor Proveedor @relation(fields:[proveedorId],references:[id],onDelete:Restrict)
+ detalles DetalleCompra[]
+ pagos PagoProveedor[]
+ @@index([tenantId])
+ @@index([tenantId,estado])
+ @@map("compras_proveedor")
+}
+model DetalleCompra {
+ id String @id @default(uuid())
+ compraId String @map("compra_id")
+ productoId String @map("producto_id")
+ cantidad Decimal @db.Decimal(12,2)
+ costoUnitario Decimal @map("costo_unitario") @db.Decimal(12,2)
+ subtotal Decimal @db.Decimal(12,2)
+ compra CompraProveedor @relation(fields:[compraId],references:[id],onDelete:Cascade)
+ producto Producto @relation(fields:[productoId],references:[id],onDelete:Restrict)
+ @@index([compraId])
+ @@index([productoId])
+ @@map("detalles_compra_proveedor")
+}
+model PagoProveedor {
+ id String @id @default(uuid())
+ compraId String @map("compra_id")
+ monto Decimal @db.Decimal(12,2)
+ fecha DateTime
+ metodo String?
+ notas String?
+ compra CompraProveedor @relation(fields:[compraId],references:[id],onDelete:Cascade)
+ @@index([compraId])
+ @@map("pagos_proveedor")
+}
+model OrdenCompra {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ codigo String
+ proveedorId String @map("proveedor_id")
+ usuarioId String @map("usuario_id")
+ subtotal Decimal @db.Decimal(12,2)
+ isv Decimal @db.Decimal(12,2)
+ total Decimal @db.Decimal(12,2)
+ estado EstadoOrdenCompra @default(BORRADOR)
+ fechaEmision DateTime @default(now()) @map("fecha_emision")
+ fechaEntrega DateTime? @map("fecha_entrega")
+ numeroFactura String? @map("numero_factura")
+ vencimiento DateTime?
+ notas String?
+ createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime @updatedAt @map("updated_at")
+ @@unique([tenantId,codigo])
+ @@index([tenantId])
+ @@index([tenantId,estado])
+ recepciones RecepcionCompra[]
+ @@map("ordenes_compra")
+}
+model DetalleOrdenCompra {
+ id String @id @default(uuid())
+ ordenId String @map("orden_id")
+ productoId String @map("producto_id")
+ cantidad Decimal @db.Decimal(12,2)
+ cantidadRecibida Decimal @default(0) @map("cantidad_recibida") @db.Decimal(12,2)
+ precioCosto Decimal @map("precio_costo") @db.Decimal(12,2)
+ subtotal Decimal @db.Decimal(12,2)
+ @@index([ordenId])
+ @@map("detalles_orden_compra")
+}
+model RecepcionCompra {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ ordenId String @map("orden_id")
+ solicitudId String @map("solicitud_id")
+ solicitudHash String @map("solicitud_hash")
+ usuarioId String @map("usuario_id")
+ fecha DateTime @default(now())
+ @@unique([tenantId,solicitudId])
+ @@index([ordenId])
+ @@map("recepciones_compra")
+ orden OrdenCompra @relation(fields:[ordenId],references:[id],onDelete:Restrict)
+ costos CostoCompra[]
+}
+model CostoCompra {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ productoId String @map("producto_id")
+ proveedorId String @map("proveedor_id")
+ ordenId String @map("orden_id")
+ recepcionId String @map("recepcion_id")
+ cantidad Decimal @db.Decimal(12,2)
+ costo Decimal @db.Decimal(12,2)
+ fecha DateTime
+ @@index([tenantId,productoId,fecha])
+ @@map("costos_compra")
+ producto Producto @relation(fields:[productoId],references:[id],onDelete:Restrict)
+ recepcion RecepcionCompra @relation(fields:[recepcionId],references:[id],onDelete:Restrict)
+ proveedor Proveedor @relation(fields:[proveedorId],references:[id],onDelete:Restrict)
+}
+model MovimientoInventario {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ productoId String @map("producto_id")
+ usuarioId String @map("usuario_id")
+ tipo String
+ cantidad Decimal @db.Decimal(12,2)
+ anterior Decimal @db.Decimal(12,2)
+ nuevo Decimal @db.Decimal(12,2)
+ documentoId String @map("documento_id")
+ motivo String
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([tenantId,productoId,createdAt])
+ @@map("movimientos_inventario")
+ producto Producto @relation(fields:[productoId],references:[id],onDelete:Restrict)
+}
+model Caja {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ codigo String
+ usuarioId String @map("usuario_id")
+ montoApertura Decimal @map("monto_apertura") @db.Decimal(12,2)
+ montoCierreFisico Decimal? @map("monto_cierre_fisico") @db.Decimal(12,2)
+ montoEsperado Decimal? @map("monto_esperado") @db.Decimal(12,2)
+ diferencia Decimal? @db.Decimal(12,2)
+ estado EstadoCaja @default(ABIERTA)
+ fechaApertura DateTime @default(now()) @map("fecha_apertura")
+ fechaCierre DateTime? @map("fecha_cierre")
+ notas String?
+ @@unique([tenantId,codigo])
+ @@index([tenantId,estado])
+ @@index([tenantId,usuarioId])
+ @@map("cajas")
+}
+model MovimientoCaja {
+ id String @id @default(uuid())
+ cajaId String @map("caja_id")
+ tipo TipoMovimientoCaja
+ monto Decimal @db.Decimal(12,2)
+ metodo String @default("EFECTIVO")
+ usuarioId String? @map("usuario_id")
+ concepto String
+ referencia String?
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([cajaId])
+ @@map("movimientos_caja")
+}
+model CuentaOperativa {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ tipo String
+ clienteId String? @map("cliente_id")
+ proveedorId String? @map("proveedor_id")
+ documentoId String @map("documento_id")
+ monto Decimal @db.Decimal(12,2)
+ saldo Decimal @db.Decimal(12,2)
+ vencimiento DateTime?
+ usuarioId String @map("usuario_id")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@unique([tenantId,tipo,documentoId])
+ @@index([tenantId,tipo,vencimiento])
+ @@map("cuentas_operativas")
+ cliente Cliente? @relation(fields:[clienteId],references:[id],onDelete:Restrict)
+ proveedor Proveedor? @relation(fields:[proveedorId],references:[id],onDelete:Restrict)
+ pagos PagoCuenta[]
+}
+model PagoCuenta {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ cuentaId String @map("cuenta_id")
+ solicitudId String @map("solicitud_id")
+ solicitudHash String @map("solicitud_hash")
+ monto Decimal @db.Decimal(12,2)
+ metodo String
+ usuarioId String @map("usuario_id")
+ cajaId String? @map("caja_id")
+ notas String?
+ createdAt DateTime @default(now()) @map("created_at")
+ @@unique([tenantId,solicitudId])
+ @@index([cuentaId])
+ @@map("pagos_cuenta")
+ cuenta CuentaOperativa @relation(fields:[cuentaId],references:[id],onDelete:Restrict)
+}
+model AuditoriaOperacion {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ usuarioId String @map("usuario_id")
+ operacion String
+ entidadId String @map("entidad_id")
+ datos Json
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([tenantId,createdAt])
+ @@map("auditoria_operaciones")
+}
+
+model Devolucion {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ ventaId String @map("venta_id")
+ usuarioId String @map("usuario_id")
+ solicitudHash String @map("solicitud_hash")
+ motivo String
+ monto Decimal @db.Decimal(12,2)
+ creditoCancelado Decimal @map("credito_cancelado") @db.Decimal(12,2)
+ reembolso Decimal @db.Decimal(12,2)
+ metodo String
+ cajaId String? @map("caja_id")
+ createdAt DateTime @default(now()) @map("created_at")
+ venta Venta @relation(fields:[ventaId],references:[id],onDelete:Restrict)
+ items DetalleDevolucion[]
+ @@index([tenantId,ventaId])
+ @@map("devoluciones")
+}
+model DetalleDevolucion {
+ id String @id @default(uuid())
+ devolucionId String @map("devolucion_id")
+ detalleVentaId String @map("detalle_venta_id")
+ cantidad Decimal @db.Decimal(12,2)
+ destino String
+ devolucion Devolucion @relation(fields:[devolucionId],references:[id],onDelete:Restrict)
+ detalleVenta DetalleVenta @relation(fields:[detalleVentaId],references:[id],onDelete:Restrict)
+ @@index([detalleVentaId])
+ @@map("detalles_devolucion")
+}
+
+model SolicitudDevolucion {
+ id String @id @default(uuid())
+ tenantId String @map("tenant_id")
+ ventaId String @map("venta_id")
+ solicitanteId String @map("solicitante_id")
+ solicitudHash String @map("solicitud_hash")
+ comando Json
+ montoEstimado Decimal @map("monto_estimado") @db.Decimal(12,2)
+ estado String @default("PENDIENTE")
+ administradorId String? @map("administrador_id")
+ motivoDecision String? @map("motivo_decision")
+ decididaAt DateTime? @map("decidida_at")
+ createdAt DateTime @default(now()) @map("created_at")
+ @@index([tenantId,estado,createdAt])
+ @@index([tenantId,solicitanteId])
+ @@map("solicitudes_devolucion")
+}

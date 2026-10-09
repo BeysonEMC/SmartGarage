@@ -1,0 +1,161 @@
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Project setup
+
+```bash
+$ npm install
+```
+
+## Compile and run the project
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
+## Run tests
+
+```bash
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
+```
+
+## Deployment
+
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## Observability
+
+In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+
+[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+
+- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
+- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
+- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
+- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
+- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
+- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
+- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
+- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+
+To add it to this project:
+
+```bash
+$ npm install @nestjs/observe
+```
+
+Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
+
+The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+
+## Resources
+
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## FerreSystem Production Commands
+
+Set Render's Root Directory to `backend` and run production commands there. For a code-only release against an existing database already matching `prisma/schema.prisma`, use:
+
+```sh
+# Render Build Command
+npm ci --include=dev && node node_modules/prisma/build/index.js generate && npm run build
+
+# Render Start Command
+node dist/main.js
+```
+
+Do not include `prisma db push --accept-data-loss` in production builds: it can change the live schema destructively before the new application has even compiled. These build/start commands do not apply schema changes; a release that changes the schema needs a separately reviewed migration plan.
+
+`npm run start:prod` applies pending Prisma migrations with `prisma migrate deploy` and then starts the API; it never runs the seed. Use this command only after checking that the existing production database has a compatible migration history or has been properly baselined. A database previously synchronized with `db push` must not be switched blindly to `migrate deploy`.
+
+Set Render's Health Check Path to `/api/health`. This endpoint checks the database connection and returns `503` when it is unavailable.
+
+Set `NODE_ENV=production` and a real `JWT_SECRET` in Render; the production API refuses to start without the JWT secret. Set `DATABASE_URL` for the runtime connection and `DIRECT_URL` for Prisma tooling. Use the database's direct connection for `DIRECT_URL` when the runtime URL uses a pooler; if the runtime URL is already direct, both variables can use that connection. Keep their actual values outside this repository.
+
+Configure `FRONTEND_URLS` as a comma-separated list of exact frontend origins. The following values are **examples** for the production site and branch preview; replace them with the origins of the deployments you actually authorize:
+
+```text
+FRONTEND_URLS=https://ferre-system.vercel.app,https://ferre-system-git-codex-recuperacion-ventas-nelspace.vercel.app
+FRONTEND_URL=https://ferre-system.vercel.app
+```
+
+`FRONTEND_URL` remains supported for the legacy single-origin setting and is allowed alongside `FRONTEND_URLS`. Only exact HTTP(S) origins are accepted; a trailing slash is normalized. Do not include paths, wildcards, credentials, query strings or fragments. Configure these variables in Render and redeploy the API so the new CORS allowlist takes effect; editing `.env.example` does not update the hosted service. Each preview origin must be explicitly included.
+
+Authentication cookies are controlled by `NODE_ENV`: production uses `Secure` and `SameSite=None` for HTTPS frontends. The API does not read `COOKIE_SECURE` or `COOKIE_DOMAIN`; those variables do not change cookie behavior.
+
+Customer numbering requires an additive database migration before deploying the new API. Follow [the customer-number deployment procedure](docs/customer-number-deployment.md); the assignment trigger cannot be installed with `db push`.
+
+The demo seed is an explicit development/initialization operation (`npx prisma db seed`) and is blocked when `NODE_ENV=production`.
+
+To replace the platform Super Admin, use the explicit `npm run admin:replace-super-admin` command only after setting `DATABASE_URL`, `SUPER_ADMIN_PASSWORD`, and `CONFIRM_SUPER_ADMIN_REPLACEMENT` out of band. The confirmation value must match the target email. The operation is transactional, aborts if multiple Super Admin records exist, and does not touch tenant users. Never put the password in command history or logs.
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
